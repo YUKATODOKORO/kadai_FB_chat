@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IKIGAIシンプルチャット</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDKの読み込み -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <div id="chat-container">
+        <h2>IKIGAIシンプルFBチャット</h2>
+        <div id="chat-box"></div>
+        <input type="text" id="message-input" placeholder="メッセージを入力..." />
+        <button id="send-button">送信</button>
+    </div>
+
+    <script>
+        // Firebaseの初期化
+        const firebaseConfig = {
+            apiKey: "AIzaSyCc-dpX2mODFG79Pt6ZdWSZ10fUnYJUSsE",
+            authDomain: "ikigai-78488.firebaseapp.com",
+            projectId: "ikigai-78488",
+            storageBucket: "ikigai-78488.appspot.com",
+            messagingSenderId: "936418964414",
+            appId: "1:936418964414:web:3661824848a5fb8ec17fef",
+            measurementId: "G-6DY9M74487"
+        };
+
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const chatBox = document.getElementById('chat-box');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+
+        function addMessageToChatbox(message, sender) {
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${sender}`;
+            messageElement.textContent = message;
+            chatBox.appendChild(messageElement);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function saveMessageToFirestore(message, sender) {
+            db.collection('chatMessages').add({
+                message: message,
+                sender: sender,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+
+        function getBotResponse(userMessage) {
+            // 固定の応答を返す簡単なロジック
+            return "これはAIからの応答です: 「" + userMessage + "」に応答しています。";
+        }
+
+        sendButton.addEventListener('click', () => {
+            const userMessage = messageInput.value.trim();
+            if (userMessage !== '') {
+                // ユーザーメッセージを追加してFirestoreに保存
+                addMessageToChatbox(userMessage, 'user');
+                saveMessageToFirestore(userMessage, 'user');
+                messageInput.value = '';
+
+                // AI応答を生成して表示・保存
+                const botResponse = getBotResponse(userMessage);
+                addMessageToChatbox(botResponse, 'bot');
+                saveMessageToFirestore(botResponse, 'bot');
+            }
+        });
+
+        // Firebaseから過去のチャット履歴を取得して表示
+        db.collection('chatMessages').orderBy('timestamp').onSnapshot(snapshot => {
+            chatBox.innerHTML = '';
+            snapshot.forEach(doc => {
+                const entry = doc.data();
+                addMessageToChatbox(entry.message, entry.sender);
+            });
+        });
+    </script>
+</body>
+</html>
